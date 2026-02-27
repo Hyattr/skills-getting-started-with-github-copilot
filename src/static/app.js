@@ -67,20 +67,33 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => {
           const deleteButtons = activityCard.querySelectorAll(".delete-participant");
           deleteButtons.forEach(btn => {
-            btn.addEventListener("click", (e) => {
+            btn.addEventListener("click", async (e) => {
               e.preventDefault();
               const activityName = btn.getAttribute("data-activity");
               const email = btn.getAttribute("data-email");
-              // フロント側で即座に削除（見た目のみ）
-              const li = btn.closest("li");
-              if (li) {
-                li.remove();
-                messageDiv.textContent = `Removed ${email} from ${activityName} (frontend only)`;
-                messageDiv.className = "info";
+              // バックエンドAPI呼び出し
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+                  method: "POST",
+                });
+                const result = await response.json();
+                if (response.ok) {
+                  messageDiv.textContent = result.message;
+                  messageDiv.className = "success";
+                  fetchActivities(); // 再描画
+                } else {
+                  messageDiv.textContent = result.detail || "An error occurred";
+                  messageDiv.className = "error";
+                }
                 messageDiv.classList.remove("hidden");
                 setTimeout(() => {
                   messageDiv.classList.add("hidden");
-                }, 3000);
+                }, 5000);
+              } catch (error) {
+                messageDiv.textContent = "Failed to remove participant. Please try again.";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+                console.error("Error removing participant:", error);
               }
             });
           });
